@@ -1,10 +1,10 @@
 # Documentation Reading List
 
-A curated reading list for the Fedora GNOME post-install automation project. Each link below was verified live (HTTP 200, content fetched) before being shared. Links are grouped by the skeleton subsection they support, and ordered by recommended reading flow within each section.
+A curated reading list for the Fedora GNOME post-install automation project. Each link below was verified live (HTTP 200, content fetched) before being shared. Links are grouped by the section they support, and ordered by recommended reading flow within each section.
 
 ---
 
-## A.4 — inventory
+## 1.1.4 — inventory
 
 **Concepts introduced:** managed hosts, the inventory file, host variables, the `ansible_connection` parameter, implicit localhost.
 
@@ -18,7 +18,7 @@ A curated reading list for the Fedora GNOME post-install automation project. Eac
 
 ---
 
-## A.5 — vars.yml
+## 1.1.5 — vars.yml
 
 **Concepts introduced:** Ansible variables, the `vars_files` directive, Jinja2 templating, YAML quoting rules for `{{ ... }}` values, Ansible facts (`ansible_hostname`).
 
@@ -32,7 +32,7 @@ A curated reading list for the Fedora GNOME post-install automation project. Eac
 
 ---
 
-## A.6 — requirements.yml
+## 1.1.6 — requirements.yml
 
 **Concepts introduced:** Ansible Galaxy, collections vs roles, version range specifiers, `ansible-galaxy collection install -r`.
 
@@ -45,7 +45,7 @@ A curated reading list for the Fedora GNOME post-install automation project. Eac
 
 ---
 
-## A.7 — setup.yml (skeleton)
+## 1.1.7 — setup.yml (skeleton)
 
 **Concepts introduced:** plays, tasks, modules, FQCN, play keywords (`hosts`, `become`, `gather_facts`, `vars_files`, `pre_tasks`), task keywords (`name`, `when`), `ansible.builtin.fail`, `ansible.builtin.debug`, `ansible_hostname` fact.
 
@@ -61,7 +61,36 @@ A curated reading list for the Fedora GNOME post-install automation project. Eac
 
 ---
 
-## Future sections (links will be added as we get there)
+## 1.1.8 — Makefile
 
-- A.8 — `Makefile` — `make`/Makefile basics, no Ansible docs required
-- A.10 — verification (`ansible-playbook --syntax-check`, `ansible-lint`) — those tool docs
+**Concepts introduced:** GNU `make` and `Makefile` basics, targets, recipes, tab-indented commands.
+
+No Ansible-specific docs required for this section. The `make` build tool is independent of Ansible.
+
+## 1.1.10 — verification
+
+**Concepts introduced:** `ansible-playbook --syntax-check`, `ansible-lint`, check mode (`--check`), diff mode (`--diff`), idempotency.
+
+| # | Topic | What to read |
+|---|---|---|
+| 1 | Check mode + diff mode | <ul><li>Read "Using check mode" and "Using diff mode"</li><li>Note: check mode simulates changes without applying them</li><li>Diff mode shows before/after for changed files</li></ul>[playbooks_checkmode.html](https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_checkmode.html) |
+| 2 | Verifying playbooks (overview) | <ul><li>Read "Verifying playbooks" section: `--check`, `--diff`, `--list-hosts`, `--list-tasks`, `--syntax-check`</li><li>Skim the `ansible-lint` subsection</li></ul>[playbooks_intro.html](https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_intro.html) |
+| 3 | ansible-lint | <ul><li>External site (not docs.ansible.com)</li><li>The default rules list, and how to suppress a rule with `# noqa: <rule>`</li></ul>[ansible-lint rules](https://ansible.readthedocs.io/projects/lint/rules/) |
+
+**Minimum viable read (~3 min):** the "Using check mode" + "Using diff mode" sections of `playbooks_checkmode.html`. Tells you exactly what `--check --diff` does and doesn't catch.
+
+---
+
+## 1.2 — `dump-current-state.sh`
+
+**Concepts introduced:** `dnf history userinstalled`, `flatpak list --system/--user`, `dconf dump`/`load` round-trip, `pipx install`, `gext list`, bash safety flags (`set -euo pipefail`), bash idioms (`[ -f ] && cmd`, `tail -n +5`, `${1:-default}`).
+
+| # | Topic | What to read |
+|---|---|---|
+| 1 | DNF Command Reference | <ul><li>Search for "history" → "History Command"</li><li>Read `dnf history userinstalled` — shows packages installed by user</li><li>Skim return-value table at the top</li></ul>[command_ref.html](https://dnf.readthedocs.io/en/latest/command_ref.html) |
+| 2 | Flatpak Command Reference | <ul><li>Search for "list" → `flatpak list` command</li><li>Note the `--system` and `--user` flags (we use both)</li><li>Note the `--columns=application` flag for machine-readable output</li></ul>[flatpak-command-reference.html](https://docs.flatpak.org/en/latest/flatpak-command-reference.html) |
+| 3 | dconf(1) man page | <ul><li>Read "DESCRIPTION" and "COMMANDS"</li><li>Focus on `dump DIR` and `load [-f] DIR` — these are the two we'll use</li><li>Note: needs D-Bus session (works while logged into GNOME)</li></ul>[dconf.1.en](https://man.archlinux.org/man/dconf.1.en) |
+| 4 | pipx | <ul><li>Read "pip vs pipx" + "Where apps come from"</li><li>Skim "Install pipx" how-to for setup</li><li>For our use: `pipx install <package>` is the whole story</li></ul>[pipx.pypa.io/stable](https://pipx.pypa.io/stable/) |
+| 5 | gext (gnome-extensions-cli) | <ul><li>Already verified earlier (A.6 era)</li><li>We use `gext list --all --no-color` for our dump</li></ul>[gnome-extensions-cli](https://github.com/essembeh/gnome-extensions-cli) |
+
+**Minimum viable read (~5 min):** the four commands above in sequence. The dconf page is the most important — it explains exactly what `dump` produces and what `load` consumes.

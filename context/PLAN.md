@@ -226,19 +226,62 @@ dump:
 
 ## 6. Learning Path — Build Order (for a newbie)
 
-Since you're new to Ansible and want to do this yourself, build in this order so each step is verifiable before the next:
+The build runs in three phases. **Phase 1** develops on the **current Fedora** (the dev machine). **Phase 2** verifies on a **Fedora VM** (disposable, snapshotted, emulates a future fresh install). **Phase 3** is the real test on the **laptop after a fresh install**.
 
-1. **Repo + Makefile + inventory + vars.yml + ansible.cfg + requirements.yml** — empty skeleton; commit.
-2. **`dump-current-state.sh`** — run it on current Fedora; commit the output; verify `lists/` and `files/` look right.
-3. **Section 1 (Bootstrap) + Section 2 (System Prep)** — run on fresh Fedora; verify `dnf repolist` shows RPM Fusion, Flatpak remotes, system upgraded.
-4. **Section 3 (DNF packages)** — read `lists/dnf-userinstalled.txt`, write the loop; run on fresh Fedora; verify packages installed.
-5. **Section 4 (Flatpak packages)** — same pattern; verify.
-6. **Section 5 (dconf)** — start with one key (e.g., favorite apps); test on fresh Fedora; then add bulk `dconf load`.
-7. **Section 6 (Extensions)** — install `gext`, then loop all UUIDs.
-8. **Section 7 (Browsers)** — Vivaldi first, then Zen (Zen's profile-dir creation is the trickiest).
-9. **Section 8 + 9 (Extension Manager + notify)** — finalize.
+### Phase 1 — Develop (current Fedora, safe iteration)
 
-We will walk through each section in turn.
+1. **Repo skeleton** — `Makefile`, `inventory`, `vars.yml`, `requirements.yml`, `setup.yml` (play header only). Commit. *(Sections 1.1.1–1.1.10, done.)*
+2. **`dump-current-state.sh`** — run it on the current Fedora; commit the output; verify `lists/` and `files/` look right. *(Section 1.2.)*
+3. **Develop playbook sections one at a time**, with this iteration loop:
+   - Write the section
+   - `make syntax-check`
+   - `make lint`
+   - `ansible-playbook setup.yml --check --diff --tags <section>` for sections safe under check mode
+   - `git commit` (one commit per section)
+   
+   Section order (respecting data dependencies from the dump):
+   - Sections 1 + 2 (Bootstrap + System Prep)
+   - Section 3 (DNF packages — depends on `lists/dnf-userinstalled.txt`)
+   - Section 4 (Flatpak packages — depends on `lists/flatpak-*.txt`)
+   - Section 5 (dconf — needs a logged-in GNOME session; partial iterative testing)
+   - Section 6 (Extensions — depends on `files/extensions.yml`)
+   - Section 7 (Browsers — depends on `files/vivaldi/Default/`, `files/zen/...`)
+   - Sections 8 + 9 (Extension Manager + notify — finalize)
+
+### Phase 2 — Verify on Fedora VM
+
+After each section is committed, verify on a Fedora VM (GNOME Boxes / KVM). The VM is disposable; restore from a "just-installed Fedora 44" snapshot before each test run.
+
+1. Restore the VM to its "just-installed Fedora 44" snapshot
+2. From inside the VM: `ansible-pull -U git@github.com:mcircuit/Fedora-Playbook.git -C main setup.yml`
+3. Observe the outcome — log in to GNOME, inspect settings, extensions, browsers
+4. Re-run to confirm idempotency (second run reports `changed=0`)
+5. If wrong: fix in the dev tree, `git push`, restore the VM snapshot, repeat
+6. If right: move to the next section
+
+**VM notes:**
+- Use a separate SSH key on the VM (recommended), authorized on your GitHub account — distinct identity from the dev machine
+- The VM provides a logged-in GNOME session, so dconf and extension tasks run in their natural environment
+- This emulates the future fresh-install workflow without committing to a real reinstall
+
+### Phase 3 — Real test on laptop after fresh Fedora install
+
+After Phase 2 confirms every section works end-to-end:
+
+1. Fresh install Fedora 44 on the real laptop
+2. `sudo dnf install -y ansible-core ansible-lint git`
+3. Authorize SSH key on GitHub
+4. `ansible-pull -U git@github.com:mcircuit/Fedora-Playbook.git -C main setup.yml`
+5. Follow the playbook's post-run notify checklist (reboot for kernel, logout/login for GNOME, log in to Vivaldi and Zen)
+
+If Phase 2 was thorough, Phase 3 should just work.
+
+### Why this three-phase order
+
+- **Section dependencies drive order:** the dump must happen before sections that consume `lists/` and `files/` data.
+- **VM is a cheaper proxy for fresh install:** bugs surface immediately, snapshot restore is instant vs reinstalling Fedora on the laptop.
+- **Iterative commits make rollback safe:** each section is its own commit; revert one without touching the others.
+- **`ansible-pull` is exercised for real on every iteration** (Phase 2), not just on the final fresh install.
 
 ---
 

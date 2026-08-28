@@ -1,29 +1,43 @@
 # Project Progress
 
-Tracks the Fedora GNOME post-install automation project status. This is the single source of truth for which skeleton steps are done, in progress, or pending. Updated by the agent after each completed subsection.
+Tracks the Fedora GNOME post-install automation project status. This is the single source of truth for which sections are done, in progress, or pending. Updated by the agent after each completed section.
 
 ## How this file is maintained
 
-- **Who:** the agent updates this file after verifying a subsection is complete (per AGENTS.md rule #8).
+- **Who:** the agent updates this file after verifying a section is complete (per AGENTS.md rule #8).
 - **When:** immediately after verification — same turn as the verification message to the user.
-- **What changes:** the row for that subsection's status flips to `Done`, `Skipped`, or remains `In progress` if the subsection is partial.
-- **What stays the same:** the row order, the step labels, and the "Notes" column (unless notes need updating).
-- **Add new steps:** only when explicitly asked by the user or when PLAN.md introduces them.
+- **What changes:** the row for that section's status flips to `Done`, `Skipped`, or remains `In progress` if the section is partial.
+- **What stays the same:** the row order, the section labels, and the "Notes" column (unless notes need updating).
+- **Add new sections:** only when explicitly asked by the user or when `context/PLAN.md` introduces them.
 
 ## Status
 
-| Step | Status | Notes |
+| Section | Status | Notes |
 |---|---|---|
-| A.1 — `git init -b main` | Done | `.git/` initialized with `main` branch |
-| A.2 — `.gitignore` | Skipped | Deferred per user preference until noise appears |
-| A.3 — `README.md` | Done | 22 lines, includes Usage block and pointer to PLAN.md |
-| A.4 — `inventory` | Done | Single line: `localhost ansible_connection=local` |
-| A.5 — `vars.yml` | Done | Contains `target_user: merlin`, `target_home` (templated), `expected_hostname: merlin-pc` |
-| A.6 — `requirements.yml` | Done | Contains `community.general` with version `>=8.0.0`; YAML parses cleanly |
-| A.7 — `setup.yml` skeleton | Done | One play, pre_task safety check + debug placeholder; `ansible-playbook --syntax-check` passes |
-| A.8 — `Makefile` | Done | 5 targets + help; TAB-indented recipes verified; `make syntax-check` passes; `REPO_URL` still placeholder until GitHub repo exists |
-| A.9 — first commit | Done | User made initial commit; subsequent URL/DOCS/PROGRESS updates in follow-up commit `f14611b` |
-| A.10 — verification | Pending | `syntax-check` + `ansible-lint` |
+| **1.1.1 — `git init -b main`** | Done | `.git/` initialized with `main` branch |
+| **1.1.2 — `.gitignore`** | Skipped | Deferred per user preference until noise appears |
+| **1.1.3 — `README.md`** | Done | Includes Usage block, Verifying section, pointer to PLAN.md |
+| **1.1.4 — `inventory`** | Done | Single line: `localhost ansible_connection=local` |
+| **1.1.5 — `vars.yml`** | Done | `target_user: merlin`, `target_home` (templated), `expected_hostname: merlin-pc` |
+| **1.1.6 — `requirements.yml`** | Done | `community.general` version `>=8.0.0`; YAML parses cleanly |
+| **1.1.7 — `setup.yml` skeleton** | Done | One play, safety check + debug placeholder; `syntax-check` passes |
+| **1.1.8 — `Makefile`** | Done | 5 targets + help; TAB-indented recipes verified; `make syntax-check` passes |
+| **1.1.9 — first commit** | Done | User made initial commit `cec1d3d` |
+| **1.1.10 — verification** | Done | `make syntax-check` passes; `make lint` passes (0 failures, profile `production`) |
+| **1.2 — `dump-current-state.sh`** | Pending | Next — script creation, run on current Fedora, review output |
+| **1.3 — Playbook sections 1 + 2 (Bootstrap + System Prep)** | Pending | |
+| **1.4 — Playbook section 3 (DNF packages)** | Pending | Depends on `lists/dnf-userinstalled.txt` from section 1.2 |
+| **1.5 — Playbook section 4 (Flatpak packages)** | Pending | Depends on `lists/flatpak-*.txt` from section 1.2 |
+| **1.6 — Playbook section 5 (dconf)** | Pending | Depends on `files/dconf/gnome-settings.ini` from section 1.2 |
+| **1.7 — Playbook section 6 (Extensions)** | Pending | Depends on `files/extensions.yml` from section 1.2 |
+| **1.8 — Playbook section 7 (Browsers)** | Pending | Depends on `files/vivaldi/Default/`, `files/zen/...` from section 1.2 |
+| **1.9 — Playbook sections 8 + 9 (Extension Manager + notify)** | Pending | Finalize |
+| **2.1 — VM provisioning (GNOME Boxes + Fedora 44 image + snapshot)** | Pending | |
+| **2.2 — SSH key authorized on GitHub from VM** | Pending | |
+| **2.3 — VM verification rounds** | Pending | One per section, created as needed during Phase 2 |
+| **3.1 — Fresh Fedora 44 install on laptop** | Pending | |
+| **3.2 — `ansible-pull` real run** | Pending | |
+| **3.3 — Manual follow-ups** | Pending | Browser login, GNOME session restart |
 
 ## Files in this repo (status of source artifacts)
 

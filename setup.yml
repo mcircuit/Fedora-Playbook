@@ -11,7 +11,7 @@
   pre_tasks:
     - name: Safety check — refuse to run on unexpected machine
       ansible.builtin.fail:
-        msg: "Refusing to run: ansible_hostname={{ ansible_hostname }} does not match expected_hostname={{ expected_hostname }}. Edit vars.yml if your hostname changed."
+        msg: "ansible_hostname={{ ansible_hostname }} does not match expected_hostname={{ expected_hostname }}. Edit vars.yml if hostname changed."
       when: ansible_hostname != expected_hostname
 
   tasks:
