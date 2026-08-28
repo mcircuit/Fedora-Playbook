@@ -26,15 +26,15 @@ Tracks the Fedora GNOME post-install automation project status. This is the sing
 | **1.1.10 — verification** | Done | `make syntax-check` passes; `make lint` passes (0 failures, profile `production`) |
 | **1.2 — `dump-current-state.sh`** | Done | Script runs end-to-end. Captured: 427 DNF packages, 19 system Flatpaks, 481-line dconf dump, 14 extensions, Vivaldi `Preferences`. **Known gap:** Zen block incomplete — script assumed `~/.zen/` but Zen is installed via Flatpak, config lives at `~/.var/app/app.zen_browser.zen/.zen/`. Also `head -1` selects the empty default profile, missing the 375 MB "release" profile. Fix needed before fresh-install playbook Section 1.8 will capture Zen correctly. Two non-obvious workarounds applied during dev: `dnf5` dropped `history userinstalled` (now using `dnf repoquery --userinstalled`); `gext --no-color` must precede the subcommand. |
 | **1.3 — Playbook sections 1 + 2 (Bootstrap + System Prep)** | Done | Section 1 (Bootstrap) + Section 2 (System Prep: RPM Fusion release install → base tools incl. `dnf-plugins-core` → enable RPM Fusion repos → Flathub remote → `dnf upgrade`) all in `tasks:` block; `syntax-check` and `lint` pass (0 failures, profile `production`). User caught and corrected task ordering during review. Note: RPM Fusion release-package install (Task 2.1) not in original PLAN.md §3 — flagged for PLAN.md correction. |
-| **1.4 — Playbook section 3 (DNF packages)** | Pending | Depends on `lists/dnf-userinstalled.txt` from section 1.2 |
+| **1.4 — Playbook section 3 (DNF packages)** | Done | Uses `slurp` + `b64decode` instead of `lookup('lines', …)` to avoid a VM lookup permission issue; `failed_when: false` + `# noqa: ignore-errors` to skip packages unavailable on fresh Fedora. VM-verified: first run installs packages, second run `changed=0` (idempotent). |
 | **1.5 — Playbook section 4 (Flatpak packages)** | Pending | Depends on `lists/flatpak-*.txt` from section 1.2 |
 | **1.6 — Playbook section 5 (dconf)** | Pending | Depends on `files/dconf/gnome-settings.ini` from section 1.2 |
 | **1.7 — Playbook section 6 (Extensions)** | Pending | Depends on `files/extensions.yml` from section 1.2 |
 | **1.8 — Playbook section 7 (Browsers)** | Pending | Depends on `files/vivaldi/Default/`, `files/zen/...` from section 1.2; |
 | **1.9 — Playbook sections 8 + 9 (Extension Manager + notify)** | Pending | Finalize |
-| **2.1 — VM provisioning (GNOME Boxes + Fedora 44 image + snapshot)** | Pending | |
-| **2.2 — SSH key authorized on GitHub from VM** | Pending | |
-| **2.3 — VM verification rounds** | Pending | One per section, created as needed during Phase 2 |
+| **2.1 — VM provisioning (GNOME Boxes + Fedora 44 image + snapshot)** | Done | VM ready, "clean-fedora44-base" snapshot taken |
+| **2.2 — SSH key authorized on GitHub from VM** | Done | `fedora-vm-fedoraplaysbook` key authorized; clone works |
+| **2.3 — VM verification rounds** | In progress | Section 1.3 verified (8 ok / 2 changed / 1 skipped / failed=0; idempotent changed=0); Section 1.4 verified (slurp approach; idempotent changed=0); further rounds as sections land |
 | **3.1 — Fresh Fedora 44 install on laptop** | Pending | |
 | **3.2 — `ansible-pull` real run** | Pending | |
 | **3.3 — Manual follow-ups** | Pending | Browser login, GNOME session restart |

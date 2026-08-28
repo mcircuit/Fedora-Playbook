@@ -123,3 +123,16 @@ No Ansible-specific docs required for this section. The `make` build tool is ind
 | 3 | `ignore_errors` task keyword | <ul><li>Reference docs under "Task" section: `ignore_errors` = "Boolean that allows you to ignore task failures and continue with play"</li><li>Used here so a few packages unavailable on the fresh Fedora don't abort the whole playbook</li></ul>[playbooks_keywords.html](https://docs.ansible.com/projects/ansible/latest/reference_appendices/playbooks_keywords.html) |
 
 **Minimum viable read (~5 min):** the `lookup` page "The lookup function" section — explains the syntax you'll see in the task. The set_fact docs are skimmable if you've used similar variable-setting patterns in other tools.
+
+---
+
+## 1.5 — Playbook section 4 (Flatpak packages)
+
+**Concepts introduced:** `community.general.flatpak` module, `method:` parameter (system vs user), `become_user:` keyword (per-task), `when:` conditional with content-length check.
+
+| # | Topic | What to read |
+|---|---|---|
+| 1 | `community.general.flatpak` module | <ul><li>Read Synopsis + Parameters (focus on `name`, `state`, `method`, `remote`)</li><li>Note the "Install multiple packages" example — list of reverse-DNS names in `name:`</li><li>Skim Return Values to see what the module returns</li></ul>[flatpak_module.html](https://docs.ansible.com/projects/ansible/latest/collections/community/general/flatpak_module.html) |
+| 2 | Privilege escalation (`become_user`) | <ul><li>Read "Become directives" — focuses on `become`, `become_user`, `become_method`</li><li>Note: setting `become_user` does NOT imply `become: true` (already set at play level here)</li><li>Skim the rest (Network, Windows) — we only need the Linux sections</li></ul>[playbooks_privilege_escalation.html](https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_privilege_escalation.html) |
+
+**Minimum viable read (~5 min):** the flatpak module's Parameters table (focus on `name`, `method`, `state`). The become page is reference material — read "Become directives" only.

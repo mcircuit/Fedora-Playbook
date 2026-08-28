@@ -59,7 +59,6 @@
         state: latest
         # noqa: package-latest
     # Section 3 — DNF Packages from Auto-Dump
-    # Section 3 — DNF Packages from Auto-Dump
     - name: Read user-installed package list
       ansible.builtin.slurp:
         path: "{{ playbook_dir }}/lists/dnf-userinstalled.txt"
@@ -68,5 +67,31 @@
       ansible.builtin.dnf:
         name: "{{ packages_dnf_raw.content | b64decode | split('\n') | select | list }}"
         state: present
+      failed_when: false
+      # noqa: ignore-errors
+      # Section 4 — Flatpak Packages from Auto-Dump
+    - name: Read system Flatpak list
+      ansible.builtin.slurp:
+        path: "{{ playbook_dir }}/lists/flatpak-system.txt"
+      register: flatpak_system_raw
+    - name: Install system Flatpaks
+      community.general.flatpak:
+        name: "{{ flatpak_system_raw.content | b64decode | split('\n') | select | list }}"
+        state: present
+        method: system
+      when: (flatpak_system_raw.content | b64decode | split('\n') | select | list | length) > 0
+      failed_when: false
+      # noqa: ignore-errors
+    - name: Read user Flatpak list
+      ansible.builtin.slurp:
+        path: "{{ playbook_dir }}/lists/flatpak-user.txt"
+      register: flatpak_user_raw
+    - name: Install user Flatpaks
+      community.general.flatpak:
+        name: "{{ flatpak_user_raw.content | b64decode | split('\n') | select | list }}"
+        state: present
+        method: user
+      become_user: "{{ target_user }}"
+      when: (flatpak_user_raw.content | b64decode | split('\n') | select | list | length) > 0
       failed_when: false
       # noqa: ignore-errors
