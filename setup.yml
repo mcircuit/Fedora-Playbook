@@ -157,7 +157,7 @@
       ansible.builtin.yum_repository:
         name: vivaldi
         description: Vivaldi browser
-        baseurl: https://repo.vivaldi.com/archive/vivaldi/fedora/$releasever/$basearch
+        baseurl: https://repo.vivaldi.com/archive/rpm/$basearch
         enabled: true
         gpgcheck: true
         gpgkey:

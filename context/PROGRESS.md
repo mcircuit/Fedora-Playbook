@@ -1,48 +1,34 @@
 # Project Progress
 
-Tracks the Fedora GNOME post-install automation project status. This is the single source of truth for which sections are done, in progress, or pending. Updated by the agent after each completed section.
+Tracks the Fedora GNOME post-install automation project status. Each playbook section has a row with: **expected state**, **VM test**, and **user confirmation**. Updated by the agent after each section is verified on the VM or after the user confirms the expected state (per AGENTS.md rule #8).
 
 ## How this file is maintained
 
-- **Who:** the agent updates this file after verifying a section is complete (per AGENTS.md rule #8).
-- **When:** immediately after verification — same turn as the verification message to the user.
-- **What changes:** the row for that section's status flips to `Done`, `Skipped`, or remains `In progress` if the section is partial.
-- **What stays the same:** the row order, the section labels, and the "Notes" column (unless notes need updating).
-- **Add new sections:** only when explicitly asked by the user or when `context/PLAN.md` introduces them.
+- **Who:** the agent updates this file after each section is verified on the VM, or after the user confirms the expected state.
+- **When:** immediately after verification or confirmation — same turn as the message to the user.
+- **What changes:** the "VM test" column reflects the latest VM run result; the "User confirmation" column flips from `Pending` to `Confirmed` (or `NOT confirmed` with reason) when the user verifies the expected state.
+- **Add new sections:** when `context/PLAN.md` §3 introduces them.
 
 ## Status
 
-| Section | Status | Notes |
-|---|---|---|
-| **1.1.1 — `git init -b main`** | Done | `.git/` initialized with `main` branch |
-| **1.1.2 — `.gitignore`** | Skipped | Deferred per user preference until noise appears |
-| **1.1.3 — `README.md`** | Done | Includes Usage block, Verifying section, pointer to PLAN.md |
-| **1.1.4 — `inventory`** | Done | Single line: `localhost ansible_connection=local` |
-| **1.1.5 — `vars.yml`** | Done | `target_user: merlin`, `target_home` (templated), `expected_hostname: merlin-pc` |
-| **1.1.6 — `requirements.yml`** | Done | `community.general` version `>=8.0.0`; YAML parses cleanly |
-| **1.1.7 — `setup.yml` skeleton** | Done | One play, safety check + debug placeholder; `syntax-check` passes |
-| **1.1.8 — `Makefile`** | Done | 5 targets + help; TAB-indented recipes verified; `make syntax-check` passes |
-| **1.1.9 — first commit** | Done | User made initial commit `cec1d3d` |
-| **1.1.10 — verification** | Done | `make syntax-check` passes; `make lint` passes (0 failures, profile `production`) |
-| **1.2 — `dump-current-state.sh`** | Done | Script runs end-to-end. Captured: 427 DNF packages, 19 system Flatpaks, 481-line dconf dump, 14 extensions, Vivaldi `Preferences`. **Known gap:** Zen block incomplete — script assumed `~/.zen/` but Zen is installed via Flatpak, config lives at `~/.var/app/app.zen_browser.zen/.zen/`. Also `head -1` selects the empty default profile, missing the 375 MB "release" profile. Fix needed before fresh-install playbook Section 1.8 will capture Zen correctly. Two non-obvious workarounds applied during dev: `dnf5` dropped `history userinstalled` (now using `dnf repoquery --userinstalled`); `gext --no-color` must precede the subcommand. |
-| **1.3 — Playbook sections 1 + 2 (Bootstrap + System Prep)** | Done | Section 1 (Bootstrap) + Section 2 base (RPM Fusion release install → base tools incl. `dnf-plugins-core` → enable RPM Fusion repos → Flathub remote → `dnf upgrade`) all in `tasks:` block; `syntax-check` and `lint` pass (0 failures, profile `production`). User caught and corrected task ordering during review. |
-| **1.3-ext — Section 2 extensions (ffmpeg / @core / fwupdmgr / NVIDIA)** | Pending | Added per `init.pdf` after the original 1.3 was verified. ffmpeg-free → ffmpeg swap, `@core` group upgrade, `fwupdmgr get-updates` + `fwupdmgr update`, NVIDIA `akmod-nvidia` + `xorg-x11-drv-nvidia-cuda`. Playbook updated; `syntax-check` and `lint` pass. VM verification pending. |
-| **1.3a — Section 2a (GRUB backlight fix)** | Pending | Added per `init.pdf`. `ansible.builtin.lineinfile` rewrites `GRUB_CMDLINE_LINUX` with `acpi_backlight=native` while preserving the existing NVIDIA + nouveau blacklist entries. `grub2-mkconfig` runs via a handler (notified only on lineinfile change). `backup: yes` creates a timestamped backup. Playbook updated; `syntax-check` and `lint` pass. VM verification pending (skip auto-reboot — reboot must be manual after VM test). |
-| **1.3b — Section 2b (Docker CE install + user setup)** | Pending | Added per `init.pdf`. Removes 10 legacy `docker*` packages, adds `docker-ce` repo (RPM-style with `gpgkey`), installs `docker-ce` + `docker-ce-cli` + `containerd.io` + `docker-buildx-plugin` + `docker-compose-plugin`, enables+starts the service via `ansible.builtin.systemd_service`, ensures `docker` group exists, adds `{{ target_user }}` to the group with `append: yes`. Playbook updated; `syntax-check` and `lint` pass. VM verification pending. |
-| **1.3c — Section 2c (Vivaldi native RPM)** | Pending | Added per `init.pdf`. Adds Vivaldi repo (RPM-style), installs `vivaldi-stable` natively instead of as a Flatpak (avoids Flatpak sandboxing friction). Dump file `lists/flatpak-system.txt` does not include Vivaldi, so no Flatpak install needed. Playbook updated; `syntax-check` and `lint` pass. VM verification pending. |
-| **1.4 — Playbook section 3 (DNF packages)** | Done | Uses `slurp` + `b64decode` instead of `lookup('lines', …)` to avoid a VM lookup permission issue; `failed_when: false` + `# noqa: ignore-errors` to skip packages unavailable on fresh Fedora. VM-verified: first run installs packages, second run `changed=0` (idempotent). |
-| **1.5 — Playbook section 4 (Flatpak packages)** | Done | Two slurp-based reads (system + user), `community.general.flatpak` with `method: system` and `method: user` (`become_user: "{{ target_user }}"` for the latter), `when:` guard skips empty lists, `failed_when: false` + noqa for unavailable Flatpaks. VM-verified: `syntax-check` + `lint` pass, `make apply` runs the system-Flatpak install task (user-Flatpak skipped via the empty `when:` guard). |
-| **1.5a — Section 4.5 (Signal flatpak override)** | Pending | Added per `init.pdf` to fix Signal's plain-text password storage. `flatpak override --env=SIGNAL_PASSWORD_STORE=gnome-libsecret org.signal.Signal` (via `ansible.builtin.command`; no dedicated module exists). Must run AFTER Section 4 installs Signal; wrapped in `become: true` + `become_user: "{{ target_user }}"` + `failed_when: false` (silently no-op if Signal not present yet). Playbook updated; `syntax-check` and `lint` pass. VM verification pending. |
-| **1.6 — Playbook section 5 (dconf)** | Pending | Depends on `files/dconf/gnome-settings.ini` from section 1.2 |
-| **1.7 — Playbook section 6 (Extensions)** | Pending | Depends on `files/extensions.yml` from section 1.2 |
-| **1.8 — Playbook section 7 (Browsers)** | Pending | Depends on `files/vivaldi/Default/`, `files/zen/...` from section 1.2; |
-| **1.9 — Playbook sections 8 + 9 (Extension Manager + notify)** | Pending | Finalize |
-| **2.1 — VM provisioning (GNOME Boxes + Fedora 44 image + snapshot)** | Done | VM ready, "clean-fedora44-base" snapshot taken |
-| **2.2 — SSH key authorized on GitHub from VM** | Done | `fedora-vm-fedoraplaysbook` key authorized; clone works |
-| **2.3 — VM verification rounds** | In progress | Section 1.3 verified (8 ok / 2 changed / 1 skipped / failed=0; idempotent changed=0); Section 1.4 verified (slurp approach; idempotent changed=0); Section 1.5 verified (`syntax-check` + `lint` pass, `make apply` runs system Flatpak install, user Flatpak skipped via `when:` guard). Pending VM verifications: 1.3-ext (system prep extensions), 1.3a (GRUB), 1.3b (Docker), 1.3c (Vivaldi native), 1.5a (Signal override). |
-| **3.1 — Fresh Fedora 44 install on laptop** | Pending | |
-| **3.2 — `ansible-pull` real run** | Pending | |
-| **3.3 — Manual follow-ups** | Pending | Browser login, GNOME session restart |
+| Section | Expected state | VM test | User confirmation |
+|---|---|---|---|
+| **1.1 — Skeleton** | All required files exist (`Makefile`, `inventory`, `vars.yml`, `requirements.yml`, `setup.yml`); `make syntax-check` and `make lint` pass | Run locally (not on VM — these are dev-machine file creations) | Confirmed |
+| **1.2 — `dump-current-state.sh`** | `lists/dnf-userinstalled.txt` (~427 lines), `lists/flatpak-system.txt` (19 lines), `lists/flatpak-user.txt`, `files/dconf/gnome-settings.ini` (~500 lines), `files/extensions-installed.txt` (14 ext), `files/vivaldi/Default/{Preferences,Local State}` populated | Run locally | Confirmed (with known gaps: Zen block incomplete — uses `~/.zen/` but Zen is Flatpak-installed; `head -1` picks empty default profile missing 375 MB "release" profile) |
+| **Section 1 — Bootstrap** | `ansible-core` installed (latest available); `community.general 13.3.0` collection installed at `~/.ansible/collections/ansible_collections/community/general/`; `ansible-galaxy collection list` shows both | Run on VM, ok | Confirmed |
+| **Section 2 — System Prep (base: RPM Fusion + base tools + Flathub + `dnf upgrade`)** | `dnf repolist \| grep rpmfusion` shows `rpmfusion-free` and `rpmfusion-nonfree` enabled; `which git wget curl pipx dnf-plugins-core` returns paths; `flatpak remotes` shows `flathub`; `dnf check-update` is empty | Run on VM (8 ok / 2 changed / 1 skipped / failed=0; idempotent — changed=0 on 2nd run) | Confirmed |
+| **Section 2 — extensions (ffmpeg / `@core` / fwupdmgr / NVIDIA)** | `rpm -q ffmpeg` shows ffmpeg (not ffmpeg-free); `dnf group list installed` shows core updated; `fwupdmgr get-updates` returns output without error; `rpm -q akmod-nvidia xorg-x11-drv-nvidia-cuda` installed; `nvidia-smi` shows RTX 3070 | Run on VM (failed at ffmpeg swap with depsolve error; **fixed** with `allowerasing: true`; not yet re-run past ffmpeg) | Pending |
+| **Section 2a — GRUB backlight fix** | `grep GRUB_CMDLINE_LINUX /etc/default/grub` shows `acpi_backlight=native`; existing NVIDIA + nouveau blacklist entries still in the line; brightness keys work after manual reboot | In progress (playbook uses handler + `backup: true`; manual reboot required after VM test) | Pending |
+| **Section 2b — Docker CE install + user setup** | `docker --version` works; `systemctl status docker` shows `active (running)`; `groups $USER` includes `docker` (after logout/login); no leftover old `docker*` packages | Run on VM (failed at cleanup step with depsolve error — `passt-selinux` blocked `docker-selinux` removal; **fixed** with `allowerasing: true`; not yet re-run past Docker cleanup) | Pending |
+| **Section 2c — Vivaldi native RPM** | `rpm -q vivaldi-stable` shows installed; `which vivaldi` returns `/usr/bin/vivaldi`; Vivaldi launches; user signs in | Not run | Pending |
+| **Section 3 — DNF Packages from Auto-Dump** | All 427 packages from `lists/dnf-userinstalled.txt` are installed (some skipped via `failed_when: false` if unavailable on the fresh Fedora); `dnf repoquery --userinstalled \| wc -l` ≥ 427; `comm -23 <(dnf repoquery --userinstalled \| sort -u) <(sort -u lists/dnf-userinstalled.txt)` is small (just base-Fedora adds) | Run on VM (changed=N large, idempotent — changed=0 on 2nd run) | Confirmed |
+| **Section 4 — Flatpak Packages from Auto-Dump** | `flatpak list --columns=application` shows 19 apps from the dump (Zen, Bitwarden, Discord, Extension Manager, Amberol, Obsidian, Resources, Thunderbird, OnlyOffice, Signal + 9 runtimes/SDKs) | Run on VM (silent failure — `changed=0` but 0 flatpaks installed; root D-Bus issue with `community.general.flatpak` under `become: true`; **needs fix** — likely switch to user-scope or `become_user: "{{ target_user }}"` with `become: true`) | NOT confirmed (silent failure — see VM test) |
+| **Section 4.5 — Signal flatpak override** | `flatpak override --show org.signal.Signal` shows `SIGNAL_PASSWORD_STORE=gnome-libsecret`; Signal stores encryption keys in GNOME keyring (not plain text) | Not run | Pending |
+| **Section 5 — dconf** | `dconf dump /` matches `files/dconf/gnome-settings.ini` (favorites, dark mode, keybindings, etc. all restored) | Not run | Pending |
+| **Section 6 — Extensions** | `gext list --user --no-color` (run as `{{ target_user }}`) shows all UUIDs from `files/extensions.yml` as enabled | Not run | Pending |
+| **Section 7 — Browsers** | Vivaldi (native) installed and signed in; Zen (Flatpak) installed and signed in; `files/vivaldi/Default/` and `files/zen/<profile>/` exist on VM; user manually signed in to both | Not run | Pending (manual sign-in step required) |
+| **Section 8 — Extension Manager** | `flatpak list --columns=application` shows `com.mattjakeman.ExtensionManager` | Not run | Pending |
+| **Section 9 — Post-Run Notify** | Playbook prints a multi-line notify message at the end covering: reboot if kernel updated, logout/login for GNOME, log in to Vivaldi and Zen, manually set up workspaces/spaces if needed | Not run | Pending |
 
 ## Files in this repo (status of source artifacts)
 
