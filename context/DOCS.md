@@ -109,3 +109,17 @@ No Ansible-specific docs required for this section. The `make` build tool is ind
 | 4 | `community.general.flatpak_remote` module | <ul><li>Read Synopsis + Parameters (`name`, `flatpakrepo_url`, `method`, `state`)</li><li>Required host package: `flatpak`</li><li>Note: `flatpakrepo_url` is REQUIRED for `state=present`</li><li>Use Flathub URL: `https://dl.flathub.org/repo/flathub.flatpakrepo`</li></ul>[flatpak_remote_module.html](https://docs.ansible.com/projects/ansible/latest/collections/community/general/flatpak_remote_module.html) |
 
 **Minimum viable read (~5 min):** the `ansible.builtin.dnf` Synopsis + Parameters table — covers the most-used module in this playbook. The other three are skimmable.
+
+---
+
+## 1.4 — Playbook section 3 (DNF packages)
+
+**Concepts introduced:** `ansible.builtin.set_fact`, `lookup` plugin (`lines`), task-level `vars:`, `ignore_errors`, `playbook_dir` magic variable.
+
+| # | Topic | What to read |
+|---|---|---|
+| 1 | `ansible.builtin.set_fact` module | <ul><li>Read Synopsis + Parameters</li><li>Skim the Examples (especially "Setting host facts using complex arguments")</li><li>Note: `set_fact` variables persist for the rest of the play; this is why we split the read and install into two tasks</li></ul>[set_fact_module.html](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/set_fact_module.html) |
+| 2 | Lookups (`lookup('lines', ...)`) | <ul><li>Read "The lookup function" — explains `lookup` syntax and `wantlist=True`</li><li>Note: lookup runs on the *controller* (Ansible's host), not the target. `lines` returns one list element per line of the file</li><li>Skim "The query/q function" (related, used in loops)</li></ul>[playbooks_lookups.html](https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_lookups.html) |
+| 3 | `ignore_errors` task keyword | <ul><li>Reference docs under "Task" section: `ignore_errors` = "Boolean that allows you to ignore task failures and continue with play"</li><li>Used here so a few packages unavailable on the fresh Fedora don't abort the whole playbook</li></ul>[playbooks_keywords.html](https://docs.ansible.com/projects/ansible/latest/reference_appendices/playbooks_keywords.html) |
+
+**Minimum viable read (~5 min):** the `lookup` page "The lookup function" section — explains the syntax you'll see in the task. The set_fact docs are skimmable if you've used similar variable-setting patterns in other tools.
