@@ -118,6 +118,7 @@
           - docker-engine-selinux
           - docker-engine
         state: absent
+        allowerasing: true
     - name: Add Docker CE repository
       ansible.builtin.yum_repository:
         name: docker-ce
