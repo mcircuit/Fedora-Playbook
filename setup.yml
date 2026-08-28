@@ -14,11 +14,6 @@
         msg: "ansible_facts['hostname']={{ ansible_facts['hostname'] }} is not in allowed_hostnames={{ allowed_hostnames }}. Edit vars.yml if hostname changed."
       when: ansible_facts['hostname'] not in allowed_hostnames
 
-  handlers:
-    - name: Regenerate GRUB config
-      ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg
-      changed_when: false
-
   tasks:
     # Section 1 — Bootstrap (idempotent)
     - name: Ensure ansible-core is installed
@@ -101,7 +96,11 @@
         line: 'GRUB_CMDLINE_LINUX="rhgb quiet acpi_backlight=native rd.driver.blacklist=nouveau,nova_core modprobe.blacklist=nouveau,nova_core"'
         backup: true
       register: grub_change
-      notify: Regenerate GRUB config
+    - name: Regenerate GRUB config
+      ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg
+      when: grub_change.changed
+      changed_when: false
+      # noqa: no-handler
 
     # Section 2b — Docker CE install + user setup
     - name: Remove any pre-existing docker packages
