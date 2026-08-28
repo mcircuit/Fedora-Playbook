@@ -94,3 +94,18 @@ No Ansible-specific docs required for this section. The `make` build tool is ind
 | 5 | gext (gnome-extensions-cli) | <ul><li>Already verified earlier (A.6 era)</li><li>We use `gext list --all --no-color` for our dump</li></ul>[gnome-extensions-cli](https://github.com/essembeh/gnome-extensions-cli) |
 
 **Minimum viable read (~5 min):** the four commands above in sequence. The dconf page is the most important — it explains exactly what `dump` produces and what `load` consumes.
+
+---
+
+## 1.3 — Playbook sections 1 + 2 (Bootstrap + System Prep)
+
+**Concepts introduced:** `ansible.builtin.dnf` module, `ansible.builtin.command` module, `community.general.dnf_config_manager`, `community.general.flatpak_remote`, idempotency, `state: present/latest`, package globs (`name: '*'`).
+
+| # | Topic | What to read |
+|---|---|---|
+| 1 | `ansible.builtin.dnf` module | <ul><li>Read Synopsis + Parameters (focus on `name`, `state`)</li><li>Skim the "Upgrade all packages" example (`name: "*"` + `state: latest`)</li><li>Note: requires `python3-dnf` on the target host (already present on Fedora)</li></ul>[dnf_module.html](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/dnf_module.html) |
+| 2 | `ansible.builtin.command` module | <ul><li>Read Synopsis + Parameters</li><li>Note: NO shell processing — use `ansible.builtin.shell` if you need `>`, `\|`, etc.</li><li>We use it for the `ansible-galaxy collection install` invocation in Section 1</li></ul>[command_module.html](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/command_module.html) |
+| 3 | `community.general.dnf_config_manager` module | <ul><li>Read Synopsis + Parameters (`name`, `state`)</li><li>Required host package: `dnf-plugins-core` (Section 2's `dnf` task installs it)</li><li>Skim the "Ensure the crb repository is enabled" example</li></ul>[dnf_config_manager_module.html](https://docs.ansible.com/projects/ansible/latest/collections/community/general/dnf_config_manager_module.html) |
+| 4 | `community.general.flatpak_remote` module | <ul><li>Read Synopsis + Parameters (`name`, `flatpakrepo_url`, `method`, `state`)</li><li>Required host package: `flatpak`</li><li>Note: `flatpakrepo_url` is REQUIRED for `state=present`</li><li>Use Flathub URL: `https://dl.flathub.org/repo/flathub.flatpakrepo`</li></ul>[flatpak_remote_module.html](https://docs.ansible.com/projects/ansible/latest/collections/community/general/flatpak_remote_module.html) |
+
+**Minimum viable read (~5 min):** the `ansible.builtin.dnf` Synopsis + Parameters table — covers the most-used module in this playbook. The other three are skimmable.
