@@ -1,0 +1,20 @@
+---
+- name: Fedora GNOME44 post-install setup
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+
+  vars_files:
+    - vars.yml
+
+  pre_tasks:
+    - name: Safety check — refuse to run on unexpected machine
+      ansible.builtin.fail:
+        msg: "Refusing to run: ansible_hostname={{ ansible_hostname }} does not match expected_hostname={{ expected_hostname }}. Edit vars.yml if your hostname changed."
+      when: ansible_hostname != expected_hostname
+
+  tasks:
+    - name: Placeholder — real tasks come in later sections
+      ansible.builtin.debug:
+        msg: "Setup playbook skeleton loaded. No tasks yet."
