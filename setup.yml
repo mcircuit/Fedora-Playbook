@@ -11,8 +11,8 @@
   pre_tasks:
     - name: Safety check — refuse to run on unexpected machine
       ansible.builtin.fail:
-        msg: "ansible_hostname={{ ansible_hostname }} is not in allowed_hostnames={{ allowed_hostnames }}. Edit vars.yml if hostname changed."
-      when: ansible_hostname not in allowed_hostnames
+        msg: "ansible_facts['hostname']={{ ansible_facts['hostname'] }} is not in allowed_hostnames={{ allowed_hostnames }}. Edit vars.yml if hostname changed."
+      when: ansible_facts['hostname'] not in allowed_hostnames
 
   tasks:
     # Section 1 — Bootstrap (idempotent)
@@ -29,8 +29,8 @@
     - name: Install RPM Fusion release packages
       ansible.builtin.dnf:
         name:
-          - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
-          - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+          - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
+          - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
         state: present
         disable_gpg_check: true
     - name: Install base tools
