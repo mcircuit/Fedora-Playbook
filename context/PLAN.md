@@ -70,6 +70,31 @@ Sequencing matters; each section assumes the prior sections succeeded.
 - `community.general.flatpak_remote: name: flathub state: present`
 - `ansible.builtin.dnf: name: ['git', 'wget', 'curl', 'pipx'] state: present`
 - `ansible.builtin.dnf: name: '*' state: latest` (the full system upgrade)
+- **Swap ffmpeg-free → ffmpeg** (full codec set from RPM Fusion): remove `ffmpeg-free`, install `ffmpeg`
+- **Upgrade `@core` group**: `ansible.builtin.dnf: name: "@core" state: present`
+- **Firmware updates:** `fwupdmgr get-updates` (informational, read-only) + `fwupdmgr update --assume-yes` (writes firmware)
+- **NVIDIA proprietary driver:** `ansible.builtin.dnf: name: [akmod-nvidia, xorg-x11-drv-nvidia-cuda] state: present` (requires RPM Fusion Nonfree)
+
+### Section 2a — Hardware tweaks (GRUB backlight fix)
+
+- `ansible.builtin.lineinfile: path: /etc/default/grub regexp: '^GRUB_CMDLINE_LINUX=' line: '...' backup: yes` — preserves the full GRUB line (including the existing NVIDIA blacklist + nouveau modprobe entries), just adding/editing the backlight parameter
+- `ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg` — regenerate, gated on the lineinfile reporting `changed`
+
+### Section 2b — Docker CE install + user setup
+
+- `ansible.builtin.dnf: state: absent` for the 10 old `docker*` packages (idempotent cleanup)
+- `ansible.builtin.yum_repository: name: docker-ce baseurl: https://download.docker.com/linux/fedora/$releasever/$basearch/stable gpgkey: https://download.docker.com/linux/fedora/gpg`
+- `ansible.builtin.dnf: name: [docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin] state: present`
+- `ansible.builtin.systemd_service: name: docker enabled: true state: started`
+- `ansible.builtin.group: name: docker state: present` (idempotent — no-op if exists)
+- `ansible.builtin.user: name: "{{ target_user }}" groups: docker append: yes` — add user to group (logout/login required to take effect)
+
+### Section 2c — Vivaldi native RPM install (replaces Flatpak)
+
+- `ansible.builtin.yum_repository: name: vivaldi baseurl: https://repo.vivaldi.com/archive/vivaldi/fedora/$releasever/$basearch gpgkey: https://repo.vivaldi.com/archive/linux_signing_key.pub`
+- `ansible.builtin.dnf: name: vivaldi-stable state: present`
+
+Note: Vivaldi is intentionally NOT in the Flatpak dump loop (Section 4). The user is migrating to the native RPM per init.pdf.
 
 ### Section 3 — DNF Packages from Auto-Dump
 
@@ -79,6 +104,7 @@ Sequencing matters; each section assumes the prior sections succeeded.
 ### Section 4 — Flatpak Packages
 
 - `community.general.flatpak` module with `loop`, separate loops for system vs user Flatpaks (system Flatpaks need `become: true`)
+- **`community.general.flatpak_override` (via `command`)** for Signal: `flatpak override --env=SIGNAL_PASSWORD_STORE=gnome-libsecret org.signal.Signal` — runs after Signal flatpak is installed in the dump loop
 
 ### Section 5 — GNOME Configuration (dconf)
 
@@ -239,14 +265,26 @@ The build runs in three phases. **Phase 1** develops on the **current Fedora** (
    - `ansible-playbook setup.yml --check --diff --tags <section>` for sections safe under check mode
    - `git commit` (one commit per section)
    
-   Section order (respecting data dependencies from the dump):
-   - Sections 1 + 2 (Bootstrap + System Prep)
+   Section order (respecting data dependencies from the dump and init.pdf-driven requirements):
+   - Sections 1 + 2 (Bootstrap + System Prep — base: RPM Fusion, base tools, repos, Flathub, `dnf upgrade`)
+   - **Section 2 extensions** (ffmpeg swap, `@core` group, `fwupdmgr` check + update, NVIDIA driver) — *added per init.pdf*
+   - **Section 2a** (GRUB backlight fix) — *added per init.pdf*
+   - **Section 2b** (Docker CE install + user setup) — *added per init.pdf*
+   - **Section 2c** (Vivaldi native RPM) — *added per init.pdf*
    - Section 3 (DNF packages — depends on `lists/dnf-userinstalled.txt`)
    - Section 4 (Flatpak packages — depends on `lists/flatpak-*.txt`)
+   - **Section 4.5** (Signal `flatpak override` for password store) — *added per init.pdf; runs after Signal is installed in 4*
    - Section 5 (dconf — needs a logged-in GNOME session; partial iterative testing)
    - Section 6 (Extensions — depends on `files/extensions.yml`)
    - Section 7 (Browsers — depends on `files/vivaldi/Default/`, `files/zen/...`)
    - Sections 8 + 9 (Extension Manager + notify — finalize)
+
+   **Dependency notes for the new sections:**
+   - Section 2 extensions must run before Section 3 (DNF dump) because some packages (e.g., NVIDIA deps) may pull from RPM Fusion Nonfree which is enabled in Section 2.
+   - Section 2b (Docker) requires the docker-ce repo to be added (handled in-section) and runs before any section that uses Docker.
+   - Section 2c (Vivaldi native) replaces the Vivaldi entry that would have come from the Flatpak dump. The dump file does not contain Vivaldi, so no Flatpak install of Vivaldi is needed.
+   - Section 4.5 (Signal override) must run after Section 4 installs the Signal flatpak. The override will fail silently (due to `failed_when: false`) if Signal isn't installed yet.
+   - Section 2a (GRUB) is independent but a botched `grub2-mkconfig` could break boot — keep `backup: yes` on the lineinfile and never auto-reboot as part of this section.
 
 ### Phase 2 — Verify on Fedora VM
 
@@ -293,3 +331,8 @@ If Phase 2 was thorough, Phase 3 should just work.
 - **Browser config copy requires browsers to be closed** — handled via `pkill` tasks, but you may want to add a warning.
 - **Vivaldi's DNF repo** — their official repo URL rotates; check `vivaldi.com/download` for the current one before you commit a broken URL.
 - **`ansible-pull` + first run** — `ansible-pull` does NOT bootstrap Ansible itself; you must `sudo dnf install ansible-core` once before first invocation.
+- **`fwupdmgr update` can brick hardware** — power loss mid-write or a buggy firmware can leave devices (especially UEFI) unbootable. Recovery is hardware-dependent. The same risk exists whether you run it manually or via the playbook. **Mitigation:** only run on AC power with battery ≥ 50% charged.
+- **NVIDIA `akmod-nvidia` build takes 5-10 minutes on first boot** — the kernel module is compiled by the `akmods` systemd service. Don't reboot too quickly after `make apply`, or the nvidia driver won't be ready when the boot sequence needs it.
+- **Docker group add requires logout/login** — `usermod -aG docker` adds the user to the group, but the new session inherits the old group list. Until the user starts a new login session, `docker` commands fail with "permission denied."
+- **`dnf swap ffmpeg-free → ffmpeg` leaves a transient no-ffmpeg window** — the remove + install pair removes ffmpeg-free before installing ffmpeg. Usually safe (single-pass) but if anything between the two tasks crashes, the system has no ffmpeg.
+- **GRUB config edit is reversible but only from a live boot** — `lineinfile backup: yes` creates a timestamped backup of `/etc/default/grub`, but if a botched `grub2-mkconfig` bricks the bootloader, recovery requires a live USB.

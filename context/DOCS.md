@@ -112,6 +112,22 @@ No Ansible-specific docs required for this section. The `make` build tool is ind
 
 ---
 
+## 1.3 (extensions) — System Prep additions (ffmpeg, NVIDIA, Docker, Vivaldi, GRUB, Signal)
+
+**Concepts introduced:** `ansible.builtin.yum_repository`, `ansible.builtin.systemd_service`, `ansible.builtin.group`, `ansible.builtin.user`, `ansible.builtin.lineinfile`, plus `ansible.builtin.command` for `fwupdmgr` and `flatpak override` (no dedicated module).
+
+| # | Topic | What to read |
+|---|---|---|
+| 1 | `ansible.builtin.yum_repository` module | <ul><li>Read Synopsis + Parameters (focus on `name`, `description`, `baseurl`, `gpgkey`, `enabled`, `gpgcheck`, `state`)</li><li>Note: works for DNF on Fedora too (despite the "yum" name)</li><li>Skim Return Values to see what the module returns</li></ul>[yum_repository_module.html](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/yum_repository_module.html) |
+| 2 | `ansible.builtin.systemd_service` module | <ul><li>Read Synopsis + Parameters (focus on `name`, `enabled`, `state`)</li><li>Note: `ansible.builtin.systemd` is a redirect to `systemd_service` — use the FQCN for clarity</li><li>Skim the Examples for enable + start patterns</li></ul>[systemd_service_module.html](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/systemd_service_module.html) |
+| 3 | `ansible.builtin.group` module | <ul><li>Read Synopsis + Parameters (focus on `name`, `state`)</li><li>Required host commands: `groupadd`, `groupdel`, `groupmod` (standard on Fedora)</li><li>Skim Examples</li></ul>[group_module.html](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/group_module.html) |
+| 4 | `ansible.builtin.user` module | <ul><li>Read Synopsis + Parameters (focus on `name`, `groups`, `append`)</li><li>Note: `append: yes` is required when adding to groups (else it replaces)</li><li>Skim Examples for user/group patterns</li></ul>[user_module.html](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/user_module.html) |
+| 5 | `ansible.builtin.lineinfile` module | <ul><li>Read Synopsis + Parameters (focus on `path`, `regexp`, `line`, `state`, `backup`)</li><li>Note: `backup: yes` creates a timestamped backup before editing</li><li>Skim Examples — many useful patterns</li></ul>[lineinfile_module.html](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/lineinfile_module.html) |
+
+**Minimum viable read (~5 min):** `ansible.builtin.yum_repository` Parameters (focus on `name`, `baseurl`, `gpgkey`, `state`). The other modules have simple enough signatures to skim.
+
+---
+
 ## 1.4 — Playbook section 3 (DNF packages)
 
 **Concepts introduced:** `ansible.builtin.set_fact`, `lookup` plugin (`lines`), task-level `vars:`, `ignore_errors`, `playbook_dir` magic variable.

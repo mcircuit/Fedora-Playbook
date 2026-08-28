@@ -14,6 +14,11 @@
         msg: "ansible_facts['hostname']={{ ansible_facts['hostname'] }} is not in allowed_hostnames={{ allowed_hostnames }}. Edit vars.yml if hostname changed."
       when: ansible_facts['hostname'] not in allowed_hostnames
 
+  handlers:
+    - name: Regenerate GRUB config
+      ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg
+      changed_when: false
+
   tasks:
     # Section 1 — Bootstrap (idempotent)
     - name: Ensure ansible-core is installed
@@ -57,7 +62,109 @@
       ansible.builtin.dnf:
         name: "*"
         state: latest
-        # noqa: package-latest
+      # noqa: package-latest
+    - name: Remove ffmpeg-free (preparation for full-codec swap)
+      ansible.builtin.dnf:
+        name: ffmpeg-free
+        state: absent
+    - name: Install ffmpeg (full codec set from RPM Fusion)
+      ansible.builtin.dnf:
+        name: ffmpeg
+        state: present
+    - name: Install @core group packages
+      ansible.builtin.dnf:
+        name: "@core"
+        state: present
+    - name: Check for firmware updates (informational, read-only)
+      ansible.builtin.command: fwupdmgr get-updates
+      register: fwupd_available
+      changed_when: false
+      failed_when: false
+    - name: Install firmware updates
+      ansible.builtin.command: fwupdmgr update --assume-yes
+      when: fwupd_available is succeeded
+      changed_when: false
+      failed_when: false
+    - name: Install NVIDIA proprietary driver (akmods + CUDA)
+      ansible.builtin.dnf:
+        name:
+          - akmod-nvidia
+          - xorg-x11-drv-nvidia-cuda
+        state: present
+
+    # Section 2a — Hardware tweaks (GRUB backlight fix)
+    - name: Configure GRUB for backlight control
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX='
+        line: 'GRUB_CMDLINE_LINUX="rhgb quiet acpi_backlight=native rd.driver.blacklist=nouveau,nova_core modprobe.blacklist=nouveau,nova_core"'
+        backup: true
+      register: grub_change
+      notify: Regenerate GRUB config
+
+    # Section 2b — Docker CE install + user setup
+    - name: Remove any pre-existing docker packages
+      ansible.builtin.dnf:
+        name:
+          - docker
+          - docker-client
+          - docker-client-latest
+          - docker-common
+          - docker-latest
+          - docker-latest-logrotate
+          - docker-logrotate
+          - docker-selinux
+          - docker-engine-selinux
+          - docker-engine
+        state: absent
+    - name: Add Docker CE repository
+      ansible.builtin.yum_repository:
+        name: docker-ce
+        description: Docker CE Stable
+        baseurl: https://download.docker.com/linux/fedora/$releasever/$basearch/stable
+        enabled: true
+        gpgcheck: true
+        gpgkey:
+          - https://download.docker.com/linux/fedora/gpg
+    - name: Install Docker CE packages
+      ansible.builtin.dnf:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+    - name: Enable and start Docker daemon
+      ansible.builtin.systemd_service:
+        name: docker
+        enabled: true
+        state: started
+    - name: Ensure docker group exists
+      ansible.builtin.group:
+        name: docker
+        state: present
+    - name: Add user to docker group (logout/login required to take effect)
+      ansible.builtin.user:
+        name: "{{ target_user }}"
+        groups: docker
+        append: true
+
+    # Section 2c — Vivaldi native RPM install (replaces Flatpak)
+    - name: Add Vivaldi browser repository
+      ansible.builtin.yum_repository:
+        name: vivaldi
+        description: Vivaldi browser
+        baseurl: https://repo.vivaldi.com/archive/vivaldi/fedora/$releasever/$basearch
+        enabled: true
+        gpgcheck: true
+        gpgkey:
+          - https://repo.vivaldi.com/archive/linux_signing_key.pub
+    - name: Install Vivaldi (native RPM, avoids Flatpak sandboxing issues)
+      ansible.builtin.dnf:
+        name: vivaldi-stable
+        state: present
+
     # Section 3 — DNF Packages from Auto-Dump
     - name: Read user-installed package list
       ansible.builtin.slurp:
@@ -91,7 +198,16 @@
         name: "{{ flatpak_user_raw.content | b64decode | split('\n') | select | list }}"
         state: present
         method: user
+      become: true
       become_user: "{{ target_user }}"
       when: (flatpak_user_raw.content | b64decode | split('\n') | select | list | length) > 0
       failed_when: false
       # noqa: ignore-errors
+
+    # Signal flatpak override (must run AFTER Signal is installed by the dump loop)
+    - name: Configure Signal to use GNOME keyring for password store
+      ansible.builtin.command: flatpak override --env=SIGNAL_PASSWORD_STORE=gnome-libsecret org.signal.Signal
+      become: true
+      become_user: "{{ target_user }}"
+      changed_when: false
+      failed_when: false
