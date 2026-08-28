@@ -1,6 +1,6 @@
 .PHONY: apply dry-run lint syntax-check dump help
 
-REPO_URL := git@github.com:mcircuit/Fedora-Playbook.git   # CHANGE THIS to your real GitHub URL
+REPO_URL := git@github.com:mcircuit/Fedora-Playbook.git   # CHANGE THIS to your real GitHub URL 
 PLAYBOOK  := setup.yml
 USER_NAME := $(shell whoami)
 
@@ -13,7 +13,7 @@ help:
 	@echo "  dump          Dump current system state into lists/ and files/"
 
 apply:
-	ansible-pull -U $(REPO_URL) -C main --limit localhost $(PLAYBOOK)
+	ansible-pull -U $(REPO_URL) -C main setup.yml -K
 
 dry-run:
 	ansible-pull -U $(REPO_URL) -C main $(PLAYBOOK) --check --diff

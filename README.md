@@ -6,7 +6,7 @@ Automated post-install setup for Fedora GNOME 44 (single user, single laptop) us
 
 First run (on a freshly installed Fedora):
 
-    sudo dnf install -y ansible-core ansible-lint pipx git
+    sudo dnf install -y ansible-core ansible-lint pipx git make
     ssh-keygen -t ed25519 -C "your@email"   # if not already
     git clone git@github.com:mcircuit/Fedora-Playbook.git ~/Fedora-Playbook
     cd ~/Fedora-Playbook
