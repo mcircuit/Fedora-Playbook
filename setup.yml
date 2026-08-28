@@ -15,6 +15,46 @@
       when: ansible_hostname != expected_hostname
 
   tasks:
-    - name: Placeholder — real tasks come in later sections
-      ansible.builtin.debug:
-        msg: "Setup playbook skeleton loaded. No tasks yet."
+    # Section 1 — Bootstrap (idempotent)
+    - name: Ensure ansible-core is installed
+      ansible.builtin.dnf:
+        name: ansible-core
+        state: present
+    - name: Ensure required collections are installed
+      ansible.builtin.command: ansible-galaxy collection install -r requirements.yml
+      args:
+        chdir: "{{ playbook_dir }}"
+      changed_when: false
+    # Section 2 — System Prep
+    - name: Install RPM Fusion release packages
+      ansible.builtin.dnf:
+        name:
+          - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+          - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+        state: present
+        disable_gpg_check: true
+    - name: Install base tools
+      ansible.builtin.dnf:
+        name:
+          - git
+          - wget
+          - curl
+          - pipx
+          - dnf-plugins-core
+        state: present
+    - name: Enable RPM Fusion repositories
+      community.general.dnf_config_manager:
+        name:
+          - rpmfusion-free
+          - rpmfusion-nonfree
+        state: enabled
+    - name: Add Flathub remote
+      community.general.flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+    - name: Upgrade all installed packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        # noqa: package-latest
