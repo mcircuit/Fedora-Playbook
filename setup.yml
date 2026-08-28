@@ -54,6 +54,14 @@
         name: flathub
         state: present
         flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+    - name: Add Flathub remote for the user (user-scope)
+      community.general.flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+        method: user
+      become: true
+      become_user: "{{ target_user }}"
     - name: Upgrade all installed packages
       ansible.builtin.dnf:
         name: "*"
