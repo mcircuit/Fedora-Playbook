@@ -101,6 +101,14 @@
       when: grub_change.changed
       changed_when: false
       # noqa: no-handler
+    - name: Add acpi_backlight to all BLS kernel entries (idempotent)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        CURRENT=$(grubby --info=DEFAULT | sed -n 's/^args="\([^"]*\)"$/\1/p')
+        if [ -n "$CURRENT" ] && ! echo "$CURRENT" | grep -qw "acpi_backlight=native"; then
+          grubby --update-kernel=ALL --args="$CURRENT acpi_backlight=native"
+        fi
+      changed_when: false
 
     # Section 2b — Docker CE install + user setup
     - name: Remove any pre-existing docker packages
