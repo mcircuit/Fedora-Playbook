@@ -202,12 +202,12 @@
       register: flatpak_system_raw
     - name: Install system Flatpaks
       community.general.flatpak:
-        name: "{{ flatpak_system_raw.content | b64decode | split('\n') | select | unique | list }}"
+        name: "{{ flatpak_system_raw.content | b64decode | split('\n') | select | reject('match', '^org\\.freedesktop\\.') | reject('match', '^org\\.gnome\\.') | unique | list }}"
         state: present
         method: user
       become: true
       become_user: "{{ target_user }}"
-      when: (flatpak_system_raw.content | b64decode | split('\n') | select | unique | list | length) > 0
+      when: (flatpak_system_raw.content | b64decode | split('\n') | select | reject('match', '^org\\.freedesktop\\.') | reject('match', '^org\\.gnome\\.') | unique | list | length) > 0
       failed_when: false
       # noqa: ignore-errors
     - name: Read user Flatpak list
@@ -216,12 +216,12 @@
       register: flatpak_user_raw
     - name: Install user Flatpaks
       community.general.flatpak:
-        name: "{{ flatpak_user_raw.content | b64decode | split('\n') | select | unique | list }}"
+        name: "{{ flatpak_user_raw.content | b64decode | split('\n') | select | reject('match', '^org\\.freedesktop\\.') | reject('match', '^org\\.gnome\\.') | unique | list }}"
         state: present
         method: user
       become: true
       become_user: "{{ target_user }}"
-      when: (flatpak_user_raw.content | b64decode | split('\n') | select | list | length) > 0
+      when: (flatpak_user_raw.content | b64decode | split('\n') | select | reject('match', '^org\\.freedesktop\\.') | reject('match', '^org\\.gnome\\.') | unique | list | length) > 0
       failed_when: false
       # noqa: ignore-errors
 
