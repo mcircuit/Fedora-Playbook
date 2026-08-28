@@ -9,3 +9,4 @@ allowed_hostnames:
   - merlin-pc       # laptop
   - localhost
   - merlin
+  - fedora
