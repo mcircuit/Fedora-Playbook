@@ -9,7 +9,7 @@ First run (on a freshly installed Fedora):
     sudo dnf install -y ansible-core ansible-lint pipx git
     ssh-keygen -t ed25519 -C "your@email"   # if not already
     git clone git@github.com:mcircuit/Fedora-Playbook.git ~/Fedora-Playbook
-    cd ~/fedora-setup
+    cd ~/Fedora-Playbook
     ansible-galaxy collection install -r requirements.yml
     make syntax-check    # parse only — no execution
     make lint            # static analysis 

@@ -5,4 +5,6 @@ target_user: "merlin"
 target_home: "/home/{{ target_user }}"
 
 #run hostname command to find hostname
-expected_hostname: "merlin-pc"
+allowed_hostnames:
+  - merlin-pc       # laptop
+  - localhost 

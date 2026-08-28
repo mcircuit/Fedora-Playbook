@@ -61,8 +61,6 @@ if [ ${#ZEN_DIRS[@]} -gt 0 ]; then
             cp "$LATEST_ZEN_DIR/containers.json" "$REPO/files/zen/$PROFILE_NAME/"
         [ -f "$LATEST_ZEN_DIR/prefs.js" ] && \
             cp "$LATEST_ZEN_DIR/prefs.js" "$REPO/files/zen/$PROFILE_NAME/"
-        [ -d "$LATEST_ZEN_DIR/storage" ] && \
-            cp -r "$LATEST_ZEN_DIR/storage" "$REPO/files/zen/$PROFILE_NAME/"
         echo "Zen: dumped profile '$PROFILE_NAME' from $LATEST_ZEN_DIR"
     fi
 fi

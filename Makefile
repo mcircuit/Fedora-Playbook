@@ -13,7 +13,7 @@ help:
 	@echo "  dump          Dump current system state into lists/ and files/"
 
 apply:
-	ansible-pull -U $(REPO_URL) -C main $(PLAYBOOK)
+	ansible-pull -U $(REPO_URL) -C main --limit localhost $(PLAYBOOK)
 
 dry-run:
 	ansible-pull -U $(REPO_URL) -C main $(PLAYBOOK) --check --diff

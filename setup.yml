@@ -12,7 +12,7 @@
     - name: Safety check — refuse to run on unexpected machine
       ansible.builtin.fail:
         msg: "ansible_hostname={{ ansible_hostname }} does not match expected_hostname={{ expected_hostname }}. Edit vars.yml if hostname changed."
-      when: ansible_hostname != expected_hostname
+      when: ansible_hostname not in allowed_hostnames
 
   tasks:
     # Section 1 — Bootstrap (idempotent)
