@@ -58,3 +58,12 @@
         name: "*"
         state: latest
         # noqa: package-latest
+    # Section 3 — DNF Packages from Auto-Dump
+    - name: Read user-installed package list
+      ansible.builtin.set_fact:
+        packages_dnf: "{{ lookup('lines', playbook_dir ~ '/lists/dnf-userinstalled.txt') }}"
+    - name: Install user-installed DNF packages from dump
+      ansible.builtin.dnf:
+        name: "{{ packages_dnf }}"
+        state: present
+      ignore_errors: true

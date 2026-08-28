@@ -8,7 +8,7 @@ HOME_DIR="/home/$TARGET_USER"
 mkdir -p "$REPO/lists" "$REPO/files/dconf"
 
 # DNF user-installed
-dnf repoquery --userinstalled > "$REPO/lists/dnf-userinstalled.txt"
+dnf repoquery --userinstalled --queryformat "%{name}\n" > "$REPO/lists/dnf-userinstalled.txt"
 
 # Flatpaks
 flatpak list --system --columns=application > "$REPO/lists/flatpak-system.txt"

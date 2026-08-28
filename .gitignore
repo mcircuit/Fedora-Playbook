@@ -1,6 +1,0 @@
-# Runtime cache from Zen/Firefox-style browsers — never commit
-files/zen/**/storage/
-files/zen/**/datareporting/
-files/zen/**/weave/
-files/zen/**/crashes/
-files/zen/**/minidumps/
