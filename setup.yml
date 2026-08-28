@@ -25,6 +25,7 @@
       args:
         chdir: "{{ playbook_dir }}"
       changed_when: false
+
     # Section 2 — System Prep
     - name: Install RPM Fusion release packages
       ansible.builtin.dnf:
@@ -185,6 +186,7 @@
         state: present
       failed_when: false
       # noqa: ignore-errors
+
       # Section 4 — Flatpak Packages from Auto-Dump
     - name: Read system Flatpak list
       ansible.builtin.slurp:
@@ -194,7 +196,9 @@
       community.general.flatpak:
         name: "{{ flatpak_system_raw.content | b64decode | split('\n') | select | list }}"
         state: present
-        method: system
+        method: user
+      become: true
+      become_user: "{{ target_user }}"
       when: (flatpak_system_raw.content | b64decode | split('\n') | select | list | length) > 0
       failed_when: false
       # noqa: ignore-errors
