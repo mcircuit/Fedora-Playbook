@@ -71,6 +71,7 @@
       ansible.builtin.dnf:
         name: ffmpeg
         state: present
+        allowerasing: true
     - name: Install @core group packages
       ansible.builtin.dnf:
         name: "@core"
