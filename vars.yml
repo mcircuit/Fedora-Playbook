@@ -7,4 +7,5 @@ target_home: "/home/{{ target_user }}"
 #run hostname command to find hostname
 allowed_hostnames:
   - merlin-pc       # laptop
-  - localhost 
+  - localhost
+  - merlin
