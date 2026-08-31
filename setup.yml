@@ -1,48 +1,67 @@
 ---
 - name: Fedora GNOME44 post-install setup
+  # targets for this playbook
   hosts: localhost
   connection: local
+  # priviledge escaltation; SUDO needed for running this playbook
   become: true
+  # runs ansible.builtin.setup module to gather useful variables about the host
   gather_facts: true
 
   vars_files:
     - vars.yml
 
+  # tasks to perform before running the playbook
   pre_tasks:
-    - name: Safety check — refuse to run on unexpected machine
+    - name: Check secure boot status
+      ansible.builtin.command: mokutil --sb-state
+      register: sb_status
+      changed_when: false
+      failed_when: false
+
+    - name: Stop playbook if secure boot is enabled
       ansible.builtin.fail:
-        msg: "ansible_facts['hostname']={{ ansible_facts['hostname'] }} is not in allowed_hostnames={{ allowed_hostnames }}. Edit vars.yml if hostname changed."
-      when: ansible_facts['hostname'] not in allowed_hostnames
+        msg: "Secure boot has not been disabled, please disable in BIOS and run the playbook again!"
+      when: >
+        sb_status.rc != 0 or
+        'enabled' in sb_status.stdout | lower
+
 
   tasks:
-    # Section 1 — Bootstrap (idempotent)
+    # Section 1 - Bootstrap (idempotent)
     - name: Ensure ansible-core is installed
+      # runs 'dnf install ansible-core' command
       ansible.builtin.dnf:
         name: ansible-core
         state: present
     - name: Ensure required collections are installed
+      # runs the below command
       ansible.builtin.command: ansible-galaxy collection install -r requirements.yml
+      # ensure that the command runs in the the directory where the playbook is present
       args:
         chdir: "{{ playbook_dir }}"
+      # Ansible will report 'changed: true' if the command runs, which we dont need to know.
       changed_when: false
+      check_mode: false
 
-    # Section 2 — System Prep
+    # Section 2 - System Prep
+    - name: Install base tools for dnf_config_manager & system extensions
+      ansible.builtin.dnf:
+        name:
+          - pipx
+          - dnf-plugins-core
+        state: present
+
+    # Install, enable, and add RPM & flathub repos
     - name: Install RPM Fusion release packages
+      # Source: https://docs.fedoraproject.org/en-US/quick-docs/rpmfusion-setup/
       ansible.builtin.dnf:
         name:
           - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
           - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
         state: present
+        # the keys are inside the packages being installed, so we need to disable the gpg check otherwise the packages won't be installed
         disable_gpg_check: true
-    - name: Install base tools
-      ansible.builtin.dnf:
-        name:
-          - git
-          - wget
-          - curl
-          - pipx
-          - dnf-plugins-core
-        state: present
     - name: Enable RPM Fusion repositories
       community.general.dnf_config_manager:
         name:
@@ -63,6 +82,7 @@
       become: true
       become_user: "{{ target_user }}"
     - name: Upgrade all installed packages
+      # the noqa line below tells the linter that i know what i am doing by running state: latest (noqa = NO Quality Assurance)
       ansible.builtin.dnf:
         name: "*"
         state: latest
@@ -71,55 +91,84 @@
       ansible.builtin.dnf:
         name: ffmpeg-free
         state: absent
+        allowerasing: true
     - name: Install ffmpeg (full codec set from RPM Fusion)
       ansible.builtin.dnf:
         name: ffmpeg
         state: present
+        # grant DNF permission to delete conflicting pkgs or dep if any
         allowerasing: true
-    - name: Install @core group packages
+    - name: Upgrade @core group packages
       ansible.builtin.dnf:
         name: "@core"
-        state: present
-    - name: Check for firmware updates (informational, read-only)
+        state: latest
+        # noqa: package-latest
+    - name: Upgrade @sound-and-video group packages
+      ansible.builtin.dnf:
+        name: "@sound-and-video"
+        state: latest
+        # noqa: package-latest
+    - name: Upgrade @multimedia group packages
+      ansible.builtin.dnf:
+        name: "@multimedia"
+        state: latest
+        exclude: "PackageKit-gstreamer-plugin"
+        # noqa: package-latest
+    - name: Check for firmware updates
       ansible.builtin.command: fwupdmgr get-updates
       register: fwupd_available
       changed_when: false
-      failed_when: false
+      # fwupdmgr returns code 0 if updates are found and code 2 if no updates are found.
+      failed_when: fwupd_available.rc not in [0, 2]
     - name: Install firmware updates
-      ansible.builtin.command: fwupdmgr update --assume-yes
-      when: fwupd_available is succeeded
-      changed_when: false
-      failed_when: false
+      ansible.builtin.command: fwupdmgr update -y
+      when:
+        - fwupd_available is succeeded
+        - fwupd_available.rc == 0
+      changed_when: true
+    - name: Upgrade all installed packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+      # noqa: package-latest
     - name: Install NVIDIA proprietary driver (akmods + CUDA)
       ansible.builtin.dnf:
         name:
           - akmod-nvidia
           - xorg-x11-drv-nvidia-cuda
         state: present
+    - name: Upgrade all installed packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+      # noqa: package-latest
 
-    # Section 2a — Hardware tweaks (GRUB backlight fix)
+    # Section 2a — Hardware tweak: enabling brightness control
     - name: Configure GRUB for backlight control
+      # on future runs of the playbook, this task won't replace any lines since the existing line matches the line to be replaced with.
       ansible.builtin.lineinfile:
         path: /etc/default/grub
-        regexp: '^GRUB_CMDLINE_LINUX='
+        regexp: '^GRUB_CMDLINE_LINUX=.*'
         line: 'GRUB_CMDLINE_LINUX="rhgb quiet acpi_backlight=native rd.driver.blacklist=nouveau,nova_core modprobe.blacklist=nouveau,nova_core"'
         backup: true
+        backrefs: true
       register: grub_change
     - name: Regenerate GRUB config
       ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg
       when: grub_change.changed
       changed_when: false
       # noqa: no-handler
-    - name: Add acpi_backlight to all BLS kernel entries (idempotent)
-      ansible.builtin.shell: |
-        set -euo pipefail
-        CURRENT=$(grubby --info=DEFAULT | sed -n 's/^args="\([^"]*\)"$/\1/p')
-        if [ -n "$CURRENT" ] && ! echo "$CURRENT" | grep -qw "acpi_backlight=native"; then
-          grubby --update-kernel=ALL --args="$CURRENT acpi_backlight=native"
-        fi
-      changed_when: false
 
-    # Section 2b — Docker CE install + user setup
+    # Reboot system for updates and tweak to take effect
+    - name: System Reboot
+      ansible.builtin.reboot:
+        msg: "Rebooting system for updates to take effect..."
+        post_reboot_delay: 60
+        reboot_timeout: 60
+        pre_reboot_delay: 60
+
+    # Section 2b - Docker install + user setup
+    # Source: https://docs.docker.com/engine/install/fedora/
     - name: Remove any pre-existing docker packages
       ansible.builtin.dnf:
         name:
@@ -135,15 +184,11 @@
           - docker-engine
         state: absent
         allowerasing: true
-    - name: Add Docker CE repository
-      ansible.builtin.yum_repository:
-        name: docker-ce
-        description: Docker CE Stable
-        baseurl: https://download.docker.com/linux/fedora/$releasever/$basearch/stable
-        enabled: true
-        gpgcheck: true
-        gpgkey:
-          - https://download.docker.com/linux/fedora/gpg
+    - name: Download official Docker CE repo file
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/fedora/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+        mode: '0644'
     - name: Install Docker CE packages
       ansible.builtin.dnf:
         name:
@@ -153,11 +198,14 @@
           - docker-buildx-plugin
           - docker-compose-plugin
         state: present
-    - name: Enable and start Docker daemon
+    - name: Start & enable Docker daemon on bootup
       ansible.builtin.systemd_service:
         name: docker
         enabled: true
         state: started
+
+    # Docker post install steps for linux
+    # Source: https://docs.docker.com/engine/install/linux-postinstall/
     - name: Ensure docker group exists
       ansible.builtin.group:
         name: docker
@@ -168,7 +216,8 @@
         groups: docker
         append: true
 
-    # Section 2c — Vivaldi native RPM install (replaces Flatpak)
+    # Section 2c — Vivaldi native RPM install
+    # Source: https://repo.vivaldi.com/archive/rpm/
     - name: Add Vivaldi browser repository
       ansible.builtin.yum_repository:
         name: vivaldi
@@ -178,57 +227,15 @@
         gpgcheck: true
         gpgkey:
           - https://repo.vivaldi.com/archive/linux_signing_key.pub
-    - name: Install Vivaldi (native RPM, avoids Flatpak sandboxing issues)
+    - name: Install Vivaldi native RPM
       ansible.builtin.dnf:
         name: vivaldi-stable
         state: present
 
-    # Section 3 — DNF Packages from Auto-Dump
-    - name: Read user-installed package list
-      ansible.builtin.slurp:
-        path: "{{ playbook_dir }}/lists/dnf-userinstalled.txt"
-      register: packages_dnf_raw
-    - name: Install user-installed DNF packages from dump
-      ansible.builtin.dnf:
-        name: "{{ packages_dnf_raw.content | b64decode | split('\n') | select | list }}"
-        state: present
-      failed_when: false
-      # noqa: ignore-errors
-
-      # Section 4 — Flatpak Packages from Auto-Dump
-    - name: Read system Flatpak list
-      ansible.builtin.slurp:
-        path: "{{ playbook_dir }}/lists/flatpak-system.txt"
-      register: flatpak_system_raw
-    - name: Install system Flatpaks
-      community.general.flatpak:
-        name: "{{ flatpak_system_raw.content | b64decode | split('\n') | select | reject('match', '^org\\.freedesktop\\.') | reject('match', '^org\\.gnome\\.') | unique | list }}"
-        state: present
-        method: user
-      become: true
-      become_user: "{{ target_user }}"
-      when: (flatpak_system_raw.content | b64decode | split('\n') | select | reject('match', '^org\\.freedesktop\\.') | reject('match', '^org\\.gnome\\.') | unique | list | length) > 0
-      failed_when: false
-      # noqa: ignore-errors
-    - name: Read user Flatpak list
-      ansible.builtin.slurp:
-        path: "{{ playbook_dir }}/lists/flatpak-user.txt"
-      register: flatpak_user_raw
-    - name: Install user Flatpaks
-      community.general.flatpak:
-        name: "{{ flatpak_user_raw.content | b64decode | split('\n') | select | reject('match', '^org\\.freedesktop\\.') | reject('match', '^org\\.gnome\\.') | unique | list }}"
-        state: present
-        method: user
-      become: true
-      become_user: "{{ target_user }}"
-      when: (flatpak_user_raw.content | b64decode | split('\n') | select | reject('match', '^org\\.freedesktop\\.') | reject('match', '^org\\.gnome\\.') | unique | list | length) > 0
-      failed_when: false
-      # noqa: ignore-errors
-
-    # Signal flatpak override (must run AFTER Signal is installed by the dump loop)
-    - name: Configure Signal to use GNOME keyring for password store
-      ansible.builtin.command: flatpak override --env=SIGNAL_PASSWORD_STORE=gnome-libsecret org.signal.Signal
-      become: true
-      become_user: "{{ target_user }}"
-      changed_when: false
-      failed_when: false
+    # # Signal flatpak override (must run AFTER Signal is installed by the dump loop)
+    # - name: Configure Signal to use GNOME keyring for password store
+    #   ansible.builtin.command: flatpak override --env=SIGNAL_PASSWORD_STORE=gnome-libsecret org.signal.Signal
+    #   become: true
+    #   become_user: "{{ target_user }}"
+    #   changed_when: false
+    #   failed_when: false
