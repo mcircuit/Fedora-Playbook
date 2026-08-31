@@ -57,8 +57,8 @@
       # Source: https://docs.fedoraproject.org/en-US/quick-docs/rpmfusion-setup/
       ansible.builtin.dnf:
         name:
-          - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
-          - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
+          - "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
+          - "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
         state: present
         # the keys are inside the packages being installed, so we need to disable the gpg check otherwise the packages won't be installed
         disable_gpg_check: true
