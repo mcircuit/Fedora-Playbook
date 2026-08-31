@@ -180,15 +180,14 @@
       ansible.builtin.rpm_key:
         state: present
         key: https://download.docker.com/linux/fedora/gpg
-    - name: Download official Docker CE repo file
-      ansible.builtin.yum_repository:
-        name: docker-ce
-        description: Docker repo
-        baseurl: https://download.docker.com/linux/fedora/$releasever/$basearch/stable
-        gpgcheck: true
-        enabled: true
-        gpgkey:
-          - https://download.docker.com/linux/fedora/gpg
+    - name: Force purge broken DNF5 cache files
+      ansible.builtin.command: dnf clean all
+      changed_when: false
+    - name: Download official pre-formatted Docker CE repo file
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/fedora/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+        mode: '0644'
     - name: Install Docker CE packages
       ansible.builtin.dnf:
         name:
