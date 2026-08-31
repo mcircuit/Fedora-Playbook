@@ -1,6 +1,6 @@
 .PHONY: apply dry-run lint syntax-check dump help
 
-REPO_URL := git@github.com:mcircuit/Fedora-Playbook.git   # CHANGE THIS to your real GitHub URL 
+REPO_URL := git@github.com:mcircuit/Fedora-Playbook.git
 PLAYBOOK  := setup.yml
 USER_NAME := $(shell whoami)
 
@@ -16,7 +16,7 @@ apply:
 	ansible-pull -U $(REPO_URL) -C main setup.yml -K
 
 dry-run:
-	ansible-pull -U $(REPO_URL) -C main $(PLAYBOOK) --check --diff
+	ansible-pull -U $(REPO_URL) -C main $(PLAYBOOK) -K --check --diff
 
 lint:
 	ansible-lint $(PLAYBOOK)

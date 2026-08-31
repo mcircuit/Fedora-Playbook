@@ -19,12 +19,12 @@
       changed_when: false
       failed_when: false
 
-    - name: Stop playbook if secure boot is enabled
-      ansible.builtin.fail:
-        msg: "Secure boot has not been disabled, please disable in BIOS and run the playbook again!"
-      when: >
-        sb_status.rc != 0 or
-        'enabled' in sb_status.stdout | lower
+    # - name: Stop playbook if secure boot is enabled
+    #   ansible.builtin.fail:
+    #     msg: "Secure boot has not been disabled, please disable in BIOS and run the playbook again!"
+    #   when: >
+    #     sb_status.rc != 0 or
+    #     'enabled' in sb_status.stdout | lower
 
 
   tasks:
