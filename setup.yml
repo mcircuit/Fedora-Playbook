@@ -176,6 +176,10 @@
           - docker-engine
         state: absent
         allowerasing: true
+    - name: Import official Docker GPG key into system trust
+      ansible.builtin.rpm_key:
+        state: present
+        key: https://download.docker.com/linux/fedora/gpg
     - name: Download official Docker CE repo file
       ansible.builtin.yum_repository:
         name: docker-ce
@@ -194,7 +198,7 @@
           - docker-buildx-plugin
           - docker-compose-plugin
         state: present
-        disable_gpg_check: true
+        disable_gpg_check: false
     - name: Start & enable Docker daemon on bootup
       ansible.builtin.systemd_service:
         name: docker
