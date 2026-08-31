@@ -159,14 +159,6 @@
       changed_when: false
       # noqa: no-handler
 
-    # Reboot system for updates and tweak to take effect
-    - name: System Reboot
-      ansible.builtin.reboot:
-        msg: "Rebooting system for updates to take effect..."
-        post_reboot_delay: 60
-        reboot_timeout: 60
-        pre_reboot_delay: 60
-
     # Section 2b - Docker install + user setup
     # Source: https://docs.docker.com/engine/install/fedora/
     - name: Remove any pre-existing docker packages
