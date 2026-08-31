@@ -193,6 +193,7 @@
           - docker-buildx-plugin
           - docker-compose-plugin
         state: present
+        disable_gpg_check: true
     - name: Start & enable Docker daemon on bootup
       ansible.builtin.systemd_service:
         name: docker
