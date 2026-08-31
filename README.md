@@ -19,7 +19,14 @@ Replace 'fedora-key' with any name of your choice.
 ### 3. Clone the repo 
 
     git clone git@github.com:mcircuit/Fedora-Playbook.git ~/Fedora-Playbook
+
+Change directory into the repo's directory:
+
     cd ~/Fedora-Playbook
+
+Install the requirements for the repo:
+
+    ansible-galaxy collection install -r requirements.yml
 
 ### 4. Check the playbook
 

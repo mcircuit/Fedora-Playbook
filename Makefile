@@ -16,7 +16,7 @@ apply:
 	ansible-playbook setup.yml -Kv
 
 dry-run:
-	ansible-pull -U $(REPO_URL) -C main $(PLAYBOOK) -K --check --diff
+	ansible-pull -U $(REPO_URL) -C main $(PLAYBOOK) -Kv --check --diff
 
 lint:
 	ansible-lint $(PLAYBOOK)
