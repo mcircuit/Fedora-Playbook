@@ -1,6 +1,6 @@
 .PHONY: apply dry-run lint syntax-check dump help
 
-REPO_URL := git@github.com:mcircuit/Fedora-Playbook.git
+REPO_URL := https://github.com/mcircuit/Fedora-Playbook.git
 PLAYBOOK  := setup.yml
 USER_NAME := $(shell whoami)
 

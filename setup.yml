@@ -232,10 +232,3 @@
         name: vivaldi-stable
         state: present
 
-    # # Signal flatpak override (must run AFTER Signal is installed by the dump loop)
-    # - name: Configure Signal to use GNOME keyring for password store
-    #   ansible.builtin.command: flatpak override --env=SIGNAL_PASSWORD_STORE=gnome-libsecret org.signal.Signal
-    #   become: true
-    #   become_user: "{{ target_user }}"
-    #   changed_when: false
-    #   failed_when: false

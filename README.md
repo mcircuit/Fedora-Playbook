@@ -18,7 +18,7 @@ Replace 'fedora-key' with any name of your choice.
 
 ### 3. Clone the repo 
 
-    git clone git@github.com:mcircuit/Fedora-Playbook.git ~/Fedora-Playbook
+    git clone https://github.com/mcircuit/Fedora-Playbook.git ~/Fedora-Playbook
 
 Change directory into the repo's directory:
 
