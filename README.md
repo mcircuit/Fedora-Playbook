@@ -10,13 +10,7 @@ Before running the playbook on a fresh install of Fedora, **DISABLE SECURE BOOT!
 
     sudo dnf install -y ansible-core ansible-lint pipx git make
 
-### 2. Generate ssh key and add it to your github account
-
-    ssh-keygen -t ed25519 -C "fedora-key"   # if not already
-
-Replace 'fedora-key' with any name of your choice.
-
-### 3. Clone the repo 
+### 2. Clone the repo 
 
     git clone https://github.com/mcircuit/Fedora-Playbook.git ~/Fedora-Playbook
 
@@ -28,14 +22,12 @@ Install the requirements for the repo:
 
     ansible-galaxy collection install -r requirements.yml
 
-### 4. Check the playbook
+### 3. Check the playbook
 
     make syntax-check    # parse only — no execution
     make lint            # static analysis 
     make dry-run         # shows what would change (does NOT modify the system)
 
-### 5. Run the playbook
+### 4. Run the playbook
 
     make apply # real run via ansible-pull
-
-See `context/PLAN.md` for the full plan.
